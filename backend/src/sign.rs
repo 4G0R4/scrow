@@ -173,7 +173,7 @@ mod tests {
     use bitcoin::{
         absolute::LockTime, consensus, ecdsa, hex::DisplayHex, sighash::SighashCache, transaction,
         Address, Amount, BlockHash, CompressedPublicKey, Network, OutPoint, Sequence, Transaction,
-        TxIn, TxOut, Witness,
+        TxIn, TxOut, Txid, Witness,
     };
     use corepc_node::Node;
     use miniscript::ToPublicKey;
@@ -1003,5 +1003,172 @@ mod tests {
         );
         let result = btc_client.send_raw_transaction(&signed_tx);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn mock_signet() {
+        // Get network.
+        let network = Network::Signet;
+
+        // Get the PrivateKey and PublicKeys from constants.
+        let sec_key1 = "02c8fc5d0cd88e2f86496b9d454e83ad3c954896b71f35b868ce6bc7c564f318"
+            .parse::<SecretKey>()
+            .expect("must parse secret key");
+        let private_key1 = PrivateKey::new(sec_key1, network);
+        let public_key1 = private_key1.public_key(SECP256K1);
+        let compressed_pk1: CompressedPublicKey = public_key1.try_into().unwrap();
+        let address1 = Address::p2wpkh(&compressed_pk1, network);
+        println!("Address 1: {}", address1);
+        let sec_key2 = "59d516ccd3565fa30a768f43a920a134811dcfeac80dc1faa4b2d3d342016413"
+            .parse::<SecretKey>()
+            .expect("must parse secret key");
+        let private_key2 = PrivateKey::new(sec_key2, network);
+        let public_key2 = private_key2.public_key(SECP256K1);
+        let compressed_pk2: CompressedPublicKey = public_key2.try_into().unwrap();
+        let address2 = Address::p2wpkh(&compressed_pk2, network);
+        println!("Address 2: {}", address2);
+
+        // Send to the 2-of-2 multisig address.
+        let multisig_amount = Amount::from_btc(0.01999).unwrap();
+        let multisig_address = new_collaborative_address([public_key1, public_key2], network);
+        println!("Multisig address: {}", multisig_address);
+
+        // Create the transaction.
+        let txid1 = "1ab13a2a9de4b8289058674add8a93a7ed29972d2b34f8f8a919f2a1028b76af"
+            .parse::<Txid>()
+            .unwrap();
+        let txid2 = "2d1806b9abef12d0812071fc2344baca975c2f079d7ec75ecb507e2de7cee064"
+            .parse::<Txid>()
+            .unwrap();
+        let fund1 = OutPoint {
+            txid: txid1,
+            vout: 1,
+        };
+        let fund2 = OutPoint {
+            txid: txid2,
+            vout: 0,
+        };
+        let inputs = vec![
+            TxIn {
+                previous_output: fund1,
+                ..Default::default()
+            },
+            TxIn {
+                previous_output: fund2,
+                ..Default::default()
+            },
+        ];
+        let outputs = vec![TxOut {
+            value: multisig_amount,
+            script_pubkey: multisig_address.script_pubkey(),
+        }];
+        let unsigned = Transaction {
+            version: transaction::Version(2),
+            input: inputs,
+            output: outputs,
+            lock_time: LockTime::ZERO,
+        };
+        println!(
+            "Unsigned funding transaction: {}",
+            consensus::serialize(&unsigned).as_hex()
+        );
+
+        // Sign the first input using Sighashes
+        let spk1 = address1.script_pubkey();
+        let amount1 = Amount::from_btc(0.01).unwrap();
+        let spk2 = address2.script_pubkey();
+        let amount2 = Amount::from_btc(0.01).unwrap();
+        let sighash_type = EcdsaSighashType::All;
+        let mut sighash_cache1 = SighashCache::new(unsigned);
+        let sighash1 = sighash_cache1
+            .p2wpkh_signature_hash(0, &spk1, amount1, sighash_type)
+            .unwrap();
+        let message1 = Message::from(sighash1);
+        let signature1 = SECP256K1.sign_ecdsa(&message1, &private_key1.inner);
+        // Update the witness stack
+        let signature1 = ecdsa::Signature {
+            signature: signature1,
+            sighash_type,
+        };
+        println!("Signature 1: {}", signature1);
+        *sighash_cache1.witness_mut(0).unwrap() = Witness::p2wpkh(&signature1, &public_key1.inner);
+        let signed_tx1 = sighash_cache1.into_transaction();
+        let mut sighash_cache2 = SighashCache::new(signed_tx1);
+        let sighash2 = sighash_cache2
+            .p2wpkh_signature_hash(1, &spk2, amount2, sighash_type)
+            .unwrap();
+        let message2 = Message::from(sighash2);
+        let signature2 = SECP256K1.sign_ecdsa(&message2, &private_key2.inner);
+        // Update the witness stack
+        let signature2 = ecdsa::Signature {
+            signature: signature2,
+            sighash_type,
+        };
+        println!("Signature 2: {}", signature2);
+        *sighash_cache2.witness_mut(1).unwrap() = Witness::p2wpkh(&signature2, &public_key2.inner);
+        let signed_tx2 = sighash_cache2.into_transaction();
+        let signed_tx2_hex = consensus::encode::serialize(&signed_tx2)
+            .as_hex()
+            .to_string();
+        println!("Signed funding transaction: {}", signed_tx2_hex);
+
+        // Multisig address has: ‎0.01999 BTC
+        let resolution_amount1 = Amount::from_btc(0.005).unwrap();
+        let resolution_amount2 = Amount::from_btc(0.013).unwrap();
+        let multisig_txid = "57d7c0dd2b63788c71462d43abe1475ea4c83788b42a767ab867e167dafd3ffe"
+            .parse::<Txid>()
+            .unwrap();
+        let unsigned_tx = Transaction {
+            version: transaction::Version(2),
+            input: vec![TxIn {
+                previous_output: OutPoint {
+                    txid: multisig_txid,
+                    vout: 0,
+                },
+                ..Default::default()
+            }],
+            output: vec![
+                TxOut {
+                    value: resolution_amount1,
+                    script_pubkey: address1.script_pubkey(),
+                },
+                TxOut {
+                    value: resolution_amount2,
+                    script_pubkey: address2.script_pubkey(),
+                },
+            ],
+            lock_time: LockTime::ZERO,
+        };
+        println!(
+            "Unsigned escrow transaction: {}",
+            consensus::serialize(&unsigned_tx).as_hex()
+        );
+        let unlocking_script = new_collaborative_unlocking_script([public_key1, public_key2]);
+        let sig_1 = sign_tx(
+            unsigned_tx.clone(),
+            0,
+            private_key1,
+            multisig_amount,
+            unlocking_script.clone(),
+        );
+        let sig_2 = sign_tx(
+            unsigned_tx.clone(),
+            0,
+            private_key2,
+            multisig_amount,
+            unlocking_script.clone(),
+        );
+        let signed_tx = combine_signatures_collaborative(
+            unsigned_tx,
+            0,
+            vec![sig_1, sig_2],
+            vec![public_key1, public_key2],
+            unlocking_script,
+        );
+        assert!(signed_tx.input[0].witness.witness_script().is_some());
+        println!(
+            "Signed escrow transaction: {}",
+            consensus::serialize(&signed_tx).as_hex()
+        );
     }
 }
