@@ -26,13 +26,12 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
 
-    - name: Install dependencies
-      run: npm install
+    - name: Install Tailwind CSS globally
+      run: npm install -g tailwindcss
 
     - name: Build Tailwind CSS
-      run: npx tailwindcss -i ./input.css -o ./assets/tailwind.css --minify
+      run: tailwindcss -i ./input.css -o ./assets/tailwind.css --minify
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
