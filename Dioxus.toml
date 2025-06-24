@@ -4,4 +4,4 @@ default_platform = "web"
 
 [web.app]
 title = "AGORA Escrow"
-base_path = "/scrow"
+base_path = "scrow"
