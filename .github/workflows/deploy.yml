@@ -40,6 +40,54 @@ jobs:
     - name: Install Dioxus CLI
       run: cargo install dioxus-cli
 
+    - name: Configure Dioxus for GitHub Pages
+      run: |
+        echo "=== Configuring Dioxus.toml for GitHub Pages ==="
+        if [ -f "Dioxus.toml" ]; then
+          echo "Original Dioxus.toml:"
+          cat Dioxus.toml
+          
+          # Backup original
+          cp Dioxus.toml Dioxus.toml.backup
+          
+          # Create new Dioxus.toml with base_path
+          cat > Dioxus.toml << 'EOF'
+        [application]
+        name = "scrow"
+        default_platform = "web"
+
+        [web.app]
+        title = "scrow"
+        base_path = "scrow"
+
+        [web.watcher]
+        watch_path = ["src", "assets"]
+
+        [[web.resource.style]]
+        file = "./assets/tailwind.css"
+        EOF
+          
+          echo "Modified Dioxus.toml:"
+          cat Dioxus.toml
+        else
+          echo "Creating new Dioxus.toml with base_path"
+          cat > Dioxus.toml << 'EOF'
+        [application]
+        name = "scrow"
+        default_platform = "web"
+
+        [web.app]
+        title = "scrow"
+        base_path = "scrow"
+
+        [web.watcher]
+        watch_path = ["src", "assets"]
+
+        [[web.resource.style]]
+        file = "./assets/tailwind.css"
+        EOF
+        fi
+
     - name: Verify Dioxus project structure
       run: |
         echo "=== Checking for required Dioxus files ==="
@@ -59,17 +107,13 @@ jobs:
           find . -name "*.rs" -not -path "./target/*" | head -5
         fi
         echo ""
-        if [ -f "Dioxus.toml" ]; then
-          echo "✓ Dioxus.toml found"
-          echo "=== Dioxus.toml contents ==="
-          cat Dioxus.toml
-        else
-          echo "No Dioxus.toml (using defaults)"
-        fi
+        echo "✓ Dioxus.toml configured"
+        echo "=== Final Dioxus.toml contents ==="
+        cat Dioxus.toml
 
     - name: Build Dioxus App (Release)
       run: |
-        echo "=== Starting Dioxus build ==="
+        echo "=== Starting Dioxus build with base_path ==="
         dx build --release --verbose
         echo "Build exit code: $?"
 
