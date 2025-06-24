@@ -1,18 +1,14 @@
 [application]
-
-# App (Project) Name
 name = "scrow"
-
-# The Dioxus platform to default to
 default_platform = "web"
 
-# `build` & `serve` output path
-out_dir = "dist"
-
-# The static resource path
-asset_dir = "assets"
-
 [web.app]
-base_path = "/scrow"
-# HTML title tag content
 title = "AGORA Escrow"
+base_path = "/scrow"
+
+[web.watcher]
+
+[web.resource]
+dev = true
+
+[web.proxy]
