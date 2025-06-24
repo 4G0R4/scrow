@@ -63,8 +63,8 @@ jobs:
         [web.watcher]
         watch_path = ["src", "assets"]
 
-        [[web.resource.style]]
-        file = "./assets/tailwind.css"
+        [web.resource]
+        style = ["./assets/tailwind.css"]
         EOF
           
           echo "Modified Dioxus.toml:"
@@ -83,8 +83,8 @@ jobs:
         [web.watcher]
         watch_path = ["src", "assets"]
 
-        [[web.resource.style]]
-        file = "./assets/tailwind.css"
+        [web.resource]
+        style = ["./assets/tailwind.css"]
         EOF
         fi
 
