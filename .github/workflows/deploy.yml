@@ -2,7 +2,9 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -11,42 +13,44 @@ permissions:
 
 concurrency:
   group: "pages"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Install Rust toolchain (stable, wasm32-unknown-unknown)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
 
-      - name: Install Dioxus CLI
-        run: cargo install dioxus-cli --locked
+    - name: Install dependencies
+      run: npm install
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+    - name: Build Tailwind CSS
+      run: npx tailwindcss -i ./input.css -o ./assets/tailwind.css --minify
 
-      - name: Install Tailwind CSS CLI
-        run: npm install -g tailwindcss
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
 
-      - name: Build Tailwind CSS
-        run: npx tailwindcss -i ./input.css -o ./assets/tailwind.css
+    - name: Install Dioxus CLI
+      run: cargo install dioxus-cli
 
-      - name: Build Dioxus App (Release)
-        run: dx build --release
+    - name: Build Dioxus App (Release)
+      run: dx build --release
 
-      - name: Upload dist/ folder as artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './dist'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
