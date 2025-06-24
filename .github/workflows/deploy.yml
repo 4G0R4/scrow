@@ -96,10 +96,84 @@ jobs:
     - name: Setup Pages
       uses: actions/configure-pages@v4
 
+    - name: Find and prepare deployment files
+      run: |
+        echo "=== Creating deployment directory ==="
+        mkdir -p ./deployment
+        
+        echo "=== Looking for generated files ==="
+        # Check common Dioxus output locations
+        for dir in dist build out public; do
+          if [ -d "./$dir" ] && [ "$(ls -A ./$dir 2>/dev/null)" ]; then
+            echo "Found files in $dir:"
+            ls -la ./$dir/
+            cp -r ./$dir/* ./deployment/
+            break
+          fi
+        done
+        
+        # If no standard directory found, look for individual files
+        if [ ! "$(ls -A ./deployment 2>/dev/null)" ]; then
+          echo "No standard output directory found, looking for individual files..."
+          
+          # Look for HTML files
+          html_files=$(find . -name "*.html" -not -path "./.git/*" -not -path "./target/*" | head -5)
+          if [ -n "$html_files" ]; then
+            echo "Found HTML files:"
+            echo "$html_files"
+            echo "$html_files" | xargs -I {} cp {} ./deployment/
+          fi
+          
+          # Look for WASM files
+          wasm_files=$(find . -name "*.wasm" -not -path "./.git/*" -not -path "./target/*" | head -5)
+          if [ -n "$wasm_files" ]; then
+            echo "Found WASM files:"
+            echo "$wasm_files"
+            echo "$wasm_files" | xargs -I {} cp {} ./deployment/
+          fi
+          
+          # Look for JS files (excluding node_modules)
+          js_files=$(find . -name "*.js" -not -path "./.git/*" -not -path "./target/*" -not -path "./node_modules/*" | head -5)
+          if [ -n "$js_files" ]; then
+            echo "Found JS files:"
+            echo "$js_files"
+            echo "$js_files" | xargs -I {} cp {} ./deployment/
+          fi
+          
+          # Copy assets if they exist
+          if [ -d "./assets" ]; then
+            echo "Copying assets directory"
+            cp -r ./assets ./deployment/
+          fi
+        fi
+        
+        echo "=== Final deployment directory contents ==="
+        ls -la ./deployment/
+        
+        # Create a basic index.html if none exists
+        if [ ! -f "./deployment/index.html" ]; then
+          echo "No index.html found, creating a basic one..."
+          cat > ./deployment/index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Satoshi Escrow</title>
+            <meta charset="utf-8">
+        </head>
+        <body>
+            <h1>Satoshi Escrow</h1>
+            <p>Build completed but no content generated. Check the build logs.</p>
+            <p>This is a placeholder page.</p>
+        </body>
+        </html>
+        EOF
+          echo "Created placeholder index.html"
+        fi
+
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: './dist'
+        path: './deployment'
 
     - name: Deploy to GitHub Pages
       id: deployment
