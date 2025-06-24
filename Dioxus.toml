@@ -4,11 +4,3 @@ default_platform = "web"
 
 [web.app]
 title = "AGORA Escrow"
-base_path = "/scrow"
-
-[web.watcher]
-
-[web.resource]
-dev = true
-
-[web.proxy]
