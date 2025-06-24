@@ -59,15 +59,6 @@ jobs:
         [web.app]
         title = "scrow"
         base_path = "scrow"
-
-        [web.watcher]
-        watch_path = ["src", "assets"]
-
-        [web.resource.dev]
-
-        [web.resource.style]
-        input = "./input.css"
-        tailwind = true
         EOF
           
           echo "Modified Dioxus.toml:"
@@ -82,15 +73,6 @@ jobs:
         [web.app]
         title = "scrow"
         base_path = "scrow"
-
-        [web.watcher]
-        watch_path = ["src", "assets"]
-
-        [web.resource.dev]
-
-        [web.resource.style]
-        input = "./input.css"
-        tailwind = true
         EOF
         fi
 
