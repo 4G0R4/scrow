@@ -40,15 +40,58 @@ jobs:
     - name: Install Dioxus CLI
       run: cargo install dioxus-cli
 
-    - name: Build Dioxus App (Release)
-      run: dx build --release
-
-    - name: Debug - List dist contents
+    - name: Verify Dioxus project structure
       run: |
-        echo "Contents of dist directory:"
-        ls -la ./dist/
-        echo "Contents of dist subdirectories:"
-        find ./dist/ -type f -name "*.html" -o -name "*.js" -o -name "*.wasm" | head -10
+        echo "=== Checking for required Dioxus files ==="
+        if [ -f "Cargo.toml" ]; then
+          echo "✓ Cargo.toml found"
+          echo "=== Cargo.toml contents ==="
+          cat Cargo.toml
+        else
+          echo "✗ Cargo.toml missing!"
+        fi
+        echo ""
+        if [ -f "src/main.rs" ]; then
+          echo "✓ src/main.rs found"
+        else
+          echo "✗ src/main.rs missing!"
+          echo "Looking for other Rust files:"
+          find . -name "*.rs" -not -path "./target/*" | head -5
+        fi
+        echo ""
+        if [ -f "Dioxus.toml" ]; then
+          echo "✓ Dioxus.toml found"
+          echo "=== Dioxus.toml contents ==="
+          cat Dioxus.toml
+        else
+          echo "No Dioxus.toml (using defaults)"
+        fi
+
+    - name: Build Dioxus App (Release)
+      run: |
+        echo "=== Starting Dioxus build ==="
+        dx build --release --verbose
+        echo "Build exit code: $?"
+
+    - name: Debug - Check build output
+      run: |
+        echo "=== Current directory contents ==="
+        ls -la
+        echo "=== Looking for any HTML files ==="
+        find . -name "*.html" -not -path "./.git/*" -not -path "./target/*" | head -10
+        echo "=== Looking for any WASM files ==="
+        find . -name "*.wasm" -not -path "./.git/*" -not -path "./target/*" | head -10
+        echo "=== Checking common output directories ==="
+        for dir in dist build public out docs; do
+          if [ -d "./$dir" ]; then
+            echo "Found $dir directory:"
+            ls -la ./$dir/
+          else
+            echo "No $dir directory found"
+          fi
+        done
+        echo "=== Checking dx build output location ==="
+        dx --help | grep -A 5 "build"
 
     - name: Setup Pages
       uses: actions/configure-pages@v4
