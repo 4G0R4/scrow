@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+  name: Deploy to GitHub Pages
 
 on:
   push:
@@ -104,7 +104,9 @@ jobs:
         echo "=== Starting Dioxus build with base_path ==="
         dx build --release --verbose
         echo "Build exit code: $?"
-
+      env:
+        DIOXUS_BASE_PATH: "/scrow/"
+    
     - name: Debug - Check build output
       run: |
         echo "=== Current directory contents ==="
