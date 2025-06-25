@@ -7,7 +7,11 @@ title = "Satoshi Escrow"
 base_path = "scrow"
 
 [web.resource]
+# Copy all assets to the output directory
 style = ["./assets/tailwind.css"]
+# Include all files from assets directory
+dir = ["./assets"]
 
 [web.resource.dev]
 style = ["./assets/tailwind.css"]
+dir = ["./assets"]
