@@ -3,13 +3,12 @@ name = "scrow"
 default_platform = "web"
 
 [web.app]
-base_path = "/scrow/"
 title = "AGORA Escrow"
+base_path = "scrow"
 
 [web.resource]
-base_path = "/scrow/"
-# Disable service worker for security
-service_worker = false
+dev = true
+style = ["./assets/tailwind.css"]
 
-[bundle]
-identifier = "com.escrow.agora"
+[web.resource.dev]
+style = ["./assets/tailwind.css"]
