@@ -40,32 +40,6 @@ jobs:
     - name: Install Dioxus CLI
       run: cargo install dioxus-cli
 
-- name: Configure Dioxus for GitHub Pages
-  run: |
-    echo "=== Using existing Dioxus.toml ==="
-    if [ -f "Dioxus.toml" ]; then
-      echo "Current Dioxus.toml:"
-      cat Dioxus.toml
-    else
-      echo "Creating Dioxus.toml"
-      cat > Dioxus.toml << 'EOF'
-    [application]
-    name = "scrow"
-    default_platform = "web"
-
-    [web.app]
-    base_path = "/scrow/"
-    title = "AGORA Escrow"
-
-    [web.resource]
-    base_path = "/scrow/"
-    service_worker = false
-
-    [bundle]
-    identifier = "com.escrow.agora"
-    EOF
-    fi
-
     - name: Verify Dioxus project structure
       run: |
         echo "=== Checking for required Dioxus files ==="
