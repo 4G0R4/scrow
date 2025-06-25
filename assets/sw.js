@@ -13,7 +13,7 @@ var version = "v1.0.0::";
 */
 var offlineFundamentals = [
   // add here the files you want to cache
-  "favicon.ico",
+  // "favicon.ico",
   "logo.svg",
   "tailwind.css",
 ];
