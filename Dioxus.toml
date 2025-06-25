@@ -3,5 +3,15 @@ name = "scrow"
 default_platform = "web"
 
 [web.app]
-title = "AGORA Escrow"
 base_path = "scrow"
+title = "AGORA Escrow"
+
+[web.resource]
+base_path = "scrow"
+
+[web.resource]
+# Disable service worker for security
+service_worker = false
+
+[bundle]
+# Bundle settings if needed
