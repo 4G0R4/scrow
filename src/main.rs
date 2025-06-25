@@ -1,9 +1,6 @@
 //! Satoshi Escrow Dixous App
-
 #![allow(non_snake_case)]
-
 use dioxus::prelude::*;
-
 #[cfg(debug_assertions)]
 use dioxus::logger::{
     self,
@@ -41,9 +38,10 @@ enum Route {
         Settings {},
 }
 
-const FAVICON: Asset = asset!("/assets/favicon.ico");
-const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
-const LOGO: Asset = asset!("/assets/logo.svg");
+// Fix asset paths - remove leading slash for relative paths
+const FAVICON: Asset = asset!("assets/favicon.ico");
+const TAILWIND_CSS: Asset = asset!("assets/tailwind.css");
+const LOGO: Asset = asset!("assets/logo.svg");
 
 /// The default network
 static NETWORK: GlobalSignal<String> = Global::new(|| "Mainnet".to_string());
@@ -58,9 +56,11 @@ fn main() {
         // init logger for Dioxus
         logger::init(Level::INFO).expect("failed to init logger");
     }
+    
     // launch the web app
     #[cfg(debug_assertions)]
     info!("Launching Satoshi Escrow app");
+    
     dioxus::launch(App);
 }
 
