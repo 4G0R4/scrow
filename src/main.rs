@@ -61,16 +61,6 @@ fn main() {
     // launch the web app
     #[cfg(debug_assertions)]
     info!("Launching Satoshi Escrow app");
-    
-    // Configure for GitHub Pages deployment
-    #[cfg(feature = "web")]
-    dioxus_web::launch_cfg(
-        App,
-        dioxus_web::Config::new().with_base_path("/scrow/")
-    );
-    
-    // For other targets (desktop, etc.)
-    #[cfg(not(feature = "web"))]
     dioxus::launch(App);
 }
 
