@@ -3,11 +3,10 @@ name = "scrow"
 default_platform = "web"
 
 [web.app]
-title = "AGORA Escrow"
+title = "Satoshi Escrow"
 base_path = "scrow"
 
 [web.resource]
-dev = true
 style = ["./assets/tailwind.css"]
 
 [web.resource.dev]
