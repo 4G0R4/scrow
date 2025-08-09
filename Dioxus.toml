@@ -3,15 +3,13 @@ name = "scrow"
 default_platform = "web"
 
 [web.app]
-title = "Satoshi Escrow"
-base_path = "scrow"
+title = "AGORA Escrow"
+base_path = "/scrow/"
+
+[web.watcher]
 
 [web.resource]
-# Copy all assets to the output directory
+dev = true
 style = ["./assets/tailwind.css"]
-# Include all files from assets directory
-dir = ["./assets"]
 
-[web.resource.dev]
-style = ["./assets/tailwind.css"]
-dir = ["./assets"]
+[web.proxy]
