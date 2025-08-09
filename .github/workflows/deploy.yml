@@ -2,7 +2,10 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,165 +17,59 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
+    
     steps:
-    - name: Checkout code
+    - name: Checkout
       uses: actions/checkout@v4
-
+      
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: wasm32-unknown-unknown
+        
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-
-    - name: Install Tailwind CSS CLI
-      run: |
-        curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64
-        chmod +x tailwindcss-linux-x64
-        sudo mv tailwindcss-linux-x64 /usr/local/bin/tailwindcss
-
-    - name: Build Tailwind CSS
-      run: tailwindcss -i ./input.css -o ./assets/tailwind.css --minify
-
-    - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
-
+        
+    - name: Install Tailwind CSS
+      run: npm install -g tailwindcss
+      
     - name: Install Dioxus CLI
       run: cargo install dioxus-cli
-
-    - name: Verify Dioxus project structure
-      run: |
-        echo "=== Checking for required Dioxus files ==="
-        if [ -f "Cargo.toml" ]; then
-          echo "✓ Cargo.toml found"
-          echo "=== Cargo.toml contents ==="
-          cat Cargo.toml
-        else
-          echo "✗ Cargo.toml missing!"
-        fi
-        echo ""
-        if [ -f "src/main.rs" ]; then
-          echo "✓ src/main.rs found"
-        else
-          echo "✗ src/main.rs missing!"
-          echo "Looking for other Rust files:"
-          find . -name "*.rs" -not -path "./target/*" | head -5
-        fi
-        echo ""
-        echo "✓ Dioxus.toml configured"
-        echo "=== Final Dioxus.toml contents ==="
-        cat Dioxus.toml
-
-    - name: Build Dioxus App (Release)
-      run: |
-        echo "=== Starting Dioxus build with base_path ==="
-        dx build --release --verbose
-        echo "Build exit code: $?"
-      env:
-        DIOXUS_BASE_PATH: "/scrow/"
-    
-    - name: Debug - Check build output
-      run: |
-        echo "=== Current directory contents ==="
-        ls -la
-        echo "=== Looking for any HTML files ==="
-        find . -name "*.html" -not -path "./.git/*" -not -path "./target/*" | head -10
-        echo "=== Looking for any WASM files ==="
-        find . -name "*.wasm" -not -path "./.git/*" -not -path "./target/*" | head -10
-        echo "=== Checking common output directories ==="
-        for dir in dist build public out docs; do
-          if [ -d "./$dir" ]; then
-            echo "Found $dir directory:"
-            ls -la ./$dir/
-          else
-            echo "No $dir directory found"
-          fi
-        done
-        echo "=== Checking dx build output location ==="
-        dx --help | grep -A 5 "build"
-
+      
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Build Tailwind CSS
+      run: npx tailwindcss -i ./input.css -o ./assets/tailwind.css --minify
+      
+    - name: Build with Dioxus
+      run: dx build --release
+      
     - name: Setup Pages
       uses: actions/configure-pages@v4
-
-    - name: Find and prepare deployment files
-      run: |
-        echo "=== Creating deployment directory ==="
-        mkdir -p ./deployment
-        
-        echo "=== Looking for generated files ==="
-        # Check common Dioxus output locations
-        for dir in dist build out public; do
-          if [ -d "./$dir" ] && [ "$(ls -A ./$dir 2>/dev/null)" ]; then
-            echo "Found files in $dir:"
-            ls -la ./$dir/
-            cp -r ./$dir/* ./deployment/
-            break
-          fi
-        done
-        
-        # If no standard directory found, look for individual files
-        if [ ! "$(ls -A ./deployment 2>/dev/null)" ]; then
-          echo "No standard output directory found, looking for individual files..."
-          
-          # Look for HTML files
-          html_files=$(find . -name "*.html" -not -path "./.git/*" -not -path "./target/*" | head -5)
-          if [ -n "$html_files" ]; then
-            echo "Found HTML files:"
-            echo "$html_files"
-            echo "$html_files" | xargs -I {} cp {} ./deployment/
-          fi
-          
-          # Look for WASM files
-          wasm_files=$(find . -name "*.wasm" -not -path "./.git/*" -not -path "./target/*" | head -5)
-          if [ -n "$wasm_files" ]; then
-            echo "Found WASM files:"
-            echo "$wasm_files"
-            echo "$wasm_files" | xargs -I {} cp {} ./deployment/
-          fi
-          
-          # Look for JS files (excluding node_modules)
-          js_files=$(find . -name "*.js" -not -path "./.git/*" -not -path "./target/*" -not -path "./node_modules/*" | head -5)
-          if [ -n "$js_files" ]; then
-            echo "Found JS files:"
-            echo "$js_files"
-            echo "$js_files" | xargs -I {} cp {} ./deployment/
-          fi
-          
-          # Copy assets if they exist
-          if [ -d "./assets" ]; then
-            echo "Copying assets directory"
-            cp -r ./assets ./deployment/
-          fi
-        fi
-        
-        echo "=== Final deployment directory contents ==="
-        ls -la ./deployment/
-        
-        # Create a basic index.html if none exists
-        if [ ! -f "./deployment/index.html" ]; then
-          echo "No index.html found, creating a basic one..."
-          cat > ./deployment/index.html << 'EOF'
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Satoshi Escrow</title>
-            <meta charset="utf-8">
-        </head>
-        <body>
-            <h1>Satoshi Escrow</h1>
-            <p>Build completed but no content generated. Check the build logs.</p>
-            <p>This is a placeholder page.</p>
-        </body>
-        </html>
-        EOF
-          echo "Created placeholder index.html"
-        fi
-
+      
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: './deployment'
+        path: './dist'
 
-    - name: Deploy to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
